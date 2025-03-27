@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resume Parser with AI Analysis</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .result {
+            margin-top: 25px;
+            white-space: pre-wrap;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            color: #dc3545;
+            margin-bottom: 15px;
+            padding: 12px;
+            background-color: #f8d7da;
+            border-radius: 6px;
+            border-left: 4px solid #dc3545;
+        }
+        input[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        input[type="submit"]:hover {
+            background-color: #0069d9;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            font-weight: 500;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+        }
+        h3 {
+            color: #3a5169;
+            margin-top: 20px;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Consolas', monospace;
+            line-height: 1.4;
+        }
+        .resume-result {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 8px;
+            transition: box-shadow 0.2s;
+        }
+        .resume-result:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .similarity-high {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .similarity-medium {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .similarity-low {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .file-input-container {
+            margin-bottom: 20px;
+        }
+        .jd-container {
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+        }
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+        .file-info {
+            font-weight: 500;
+            color: #495057;
+        }
+        .processing-info {
+            color: #6c757d;
+            font-style: italic;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            .resume-result {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Resume Parser (Powered by Llama 70B & GPT-4)</h1>
+        
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form action="{{ url_for('upload_resume') }}" method="post" enctype="multipart/form-data">
+            <div class="file-input-container">
+                <label for="resume_files"><strong>Upload Resumes:</strong> (PDF, DOCX, or TXT, multiple allowed)</label><br>
+                <input type="file" id="resume_files" name="resume" accept=".pdf,.docx,.txt" multiple required>
+            </div>
+            <div class="jd-container">
+                <label for="jd_text"><strong>Paste Job Description:</strong> (Optional - for similarity scoring)</label><br>
+                <textarea id="jd_text" name="jd_text" rows="5" placeholder="Paste the job description here to get AI-powered matching scores..."></textarea>
+            </div>
+            <div>
+                <input type="submit" value="Analyze Resumes">
+            </div>
+        </form>
+
+        {% if results %}
+            <div class="stats-bar">
+                <div class="file-info">{{ results|length }} Resume{% if results|length > 1 %}s{% endif %} Processed</div>
+                <div class="processing-info">Powered by Groq Llama 70B & OpenAI</div>
+            </div>
+            
+            {% if jd_text %}
+                <div class="result">
+                    <h3>Job Description Analyzed:</h3>
+                    <pre>{{ jd_text }}</pre>
+                </div>
+            {% endif %}
+
+            {% for result in results %}
+                <div class="resume-result">
+                    <h3>{{ result.filename }}</h3>
+                    
+                    {% if result.error %}
+                        <div class="error">Processing Error: {{ result.error }}</div>
+                    {% else %}
+                        <h4>Extracted Information:</h4>
+                        <pre>{{ result.parsed_data | tojson(indent=2) }}</pre>
+                        
+                        {% if result.similarity_score is not none %}
+                            <p><strong>Match Score: </strong>
+                                <span class="
+                                    {% if result.similarity_score >= 75 %}similarity-high
+                                    {% elif result.similarity_score >= 50 %}similarity-medium
+                                    {% else %}similarity-low
+                                    {% endif %}">
+                                    {{ result.similarity_score }}%
+                                </span>
+                            </p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</body>
+</html>
